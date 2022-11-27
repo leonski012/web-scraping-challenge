@@ -2,35 +2,43 @@ from flask import Flask, render_template, redirect, url_for
 from flask_pymongo import PyMongo
 import scrape_mars
 
+
+# Flask Setup
 app = Flask(__name__)
 
-app.config["MONGO_URI"] = "mongodb://localhost:27017/mars_data_db"
+# mongodb connection
+# Use flask_pymongo to set up mongo connection
+app.config["MONGO_URI"] = "mongodb://localhost:27017/marsDB"
 mongo = PyMongo(app)
 
+# List all Flask Routes
+
+#Route to render index.html template using data from Mongo
 @app.route("/")
 def index():
-    # access information from database
-    mars_data = mongo.db.marsData.find_one()
-    # print(mars_data)
-    return render_template("index.html", mars=mars_data)
-
+   # Find one record of data from the mongo database
+    mars_details = mongo.db.mars_data.find_one()
+    # Return template and data
+    return render_template("index.html", mars=mars_details)
+    
+#scrape route
 
 @app.route("/scrape")
 def scrape():
-    # reference to a database collection (table)
-    marsTable = mongo.db.marsData
+    # identify the collection
+    mars_data = mongo.db.mars_data
+   
+    # drop collection
+    mars_data.drop()
 
-    # drop the table if it exist
-    mongo.db.marsData.drop()
-
-    # scrape mars scrpit
-    mars_data = scrape_mars.scrape_all()
-
-    # take the dictionary and load it into mongodb
-    marsTable.insert_one(mars_data)
+    #calling the scrape function
+    mars_scraped_data = scrape_mars.scrape_mars_all()
     
-    # go back to the index route
-    return redirect("/")
+    #update mongo db
+    mars_data.insert_one(mars_scraped_data)
+    return redirect("/", code=302)
 
-if __name__ == "__main__":
-    app.run()
+    session.close()
+
+if __name__ == '__main__':
+    app.run(debug=True)
